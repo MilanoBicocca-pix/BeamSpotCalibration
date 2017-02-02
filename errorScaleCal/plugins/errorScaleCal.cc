@@ -79,17 +79,17 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
       edm::Service<TFileService> outfile_;
 
-	  TH1F * h_diffX ;
-	  TH1F * h_diffY ;
-	  TH1F * h_diffZ ;
-	  TH1F * h_pullX ;
-	  TH1F * h_pullY ;
-	  TH1F * h_pullZ ;
+      TH1F * h_diffX ;
+      TH1F * h_diffY ;
+      TH1F * h_diffZ ;
+      TH1F * h_pullX ;
+      TH1F * h_pullY ;
+      TH1F * h_pullZ ;
 
-	  TH1F * h_ntrks ;
+      TH1F * h_ntrks ;
       std::map<std::string, TH1F*> hpulls_      ;
       std::map<std::string, TH1F*> hdiffs_      ;
-   	  TRandom rand;
+      TRandom rand;
 
       pvEvent event_;
       TTree* tree_;
@@ -98,21 +98,13 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 };
 
 //
-// constants, enums and typedefs
-//
-
-//
-// static data member definitions
-//
-
-//
 // constructors and destructor
 //
 errorScaleCal::errorScaleCal(const edm::ParameterSet& iConfig):
-   pvsTag_           (iConfig.getParameter<edm::InputTag>("vtxCollection")), 
-   pvsToken_         (consumes<reco::VertexCollection>(pvsTag_)), 
-   tracksTag_        (iConfig.getParameter<edm::InputTag>("trackCollection")), 
-   tracksToken_      (consumes<reco::TrackCollection>(tracksTag_))
+  pvsTag_           (iConfig.getParameter<edm::InputTag>("vtxCollection")), 
+  pvsToken_         (consumes<reco::VertexCollection>(pvsTag_)), 
+  tracksTag_        (iConfig.getParameter<edm::InputTag>("trackCollection")), 
+  tracksToken_      (consumes<reco::TrackCollection>(tracksTag_))
 {
 }
 
@@ -130,123 +122,114 @@ errorScaleCal::~errorScaleCal()
 void
 errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
-   using namespace edm;
+  using namespace edm;
 
-   beginEvent(); 
-   // Fill general info
-   event_.runNumber             = iEvent.id().run();
-   event_.luminosityBlockNumber = iEvent.id().luminosityBlock();
-   event_.eventNumber           = iEvent.id().event();
+  beginEvent(); 
+  // Fill general info
+  event_.runNumber             = iEvent.id().run();
+  event_.luminosityBlockNumber = iEvent.id().luminosityBlock();
+  event_.eventNumber           = iEvent.id().event();
 
 
-   edm::ESHandle<TransientTrackBuilder>            theB                ;
-   edm::ESHandle<GlobalTrackingGeometry>           theTrackingGeometry ;
-   iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry) ;
-   iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
- 
-   edm::Handle<reco::VertexCollection> vertices; 
-   iEvent.getByToken(pvsToken_, vertices);
-   const reco::VertexCollection pvtx  = *(vertices.product())  ;    
+  edm::ESHandle<TransientTrackBuilder>            theB                ;
+  edm::ESHandle<GlobalTrackingGeometry>           theTrackingGeometry ;
+  iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry) ;
+  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
 
-   edm::Handle<reco::TrackCollection> tracks; 
-   iEvent.getByToken(tracksToken_, tracks);
-   
+  edm::Handle<reco::VertexCollection> vertices; 
+  iEvent.getByToken(pvsToken_, vertices);
+  const reco::VertexCollection pvtx  = *(vertices.product())  ;    
+
+  edm::Handle<reco::TrackCollection> tracks; 
+  iEvent.getByToken(tracksToken_, tracks);
+  
 //    event_.nVtx = pvtx.size();
 
-   for (reco::VertexCollection::const_iterator pvIt = pvtx.begin(); pvIt!=pvtx.end(); pvIt++)        
-   {
-     reco::Vertex iPV = *pvIt;
-	 reco::Vertex::trackRef_iterator trki;
+  for (reco::VertexCollection::const_iterator pvIt = pvtx.begin(); pvIt!=pvtx.end(); pvIt++)        
+  {
+    reco::Vertex iPV = *pvIt;
+    if (iPV.isFake()) continue;
+    reco::Vertex::trackRef_iterator trki;
 
-     reco::TrackCollection allTracks;
-     reco::TrackCollection groupOne, groupTwo;
-	 for (trki  = iPV.tracks_begin(); trki != iPV.tracks_end(); ++trki) 
-	 {
-	   if (trki->isNonnull()){
-	     reco::TrackRef trk_now(tracks, (*trki).key());
-//          std::cout << "pt: "  << trk_now->pt()  << std::endl;
-//          std::cout << "eta: " << trk_now->eta() << std::endl;
-//          std::cout << "phi: " << trk_now->phi() << std::endl;
-         
-         allTracks.push_back(*trk_now);
-	   }
-	 }
-	 
-	 // order with decreasing pt 
-	 std::sort (allTracks.begin(), allTracks.end(), mysorter);
-	 
-	 int ntrks = allTracks.size();
-	 h_ntrks -> Fill( ntrks );
-	 
-	 // discard lowest pt track
-	 uint even_ntrks;
-	 ntrks % 2 == 0 ? even_ntrks = ntrks : even_ntrks = ntrks - 1;
-	 
-	 // split into two sets equally populated 
-     for (uint tracksIt =0 ;  tracksIt < even_ntrks; tracksIt = tracksIt+2)
-     {
-       reco::Track  firstTrk  = allTracks.at(tracksIt);      
-       reco::Track  secondTrk = allTracks.at(tracksIt + 1);      
-       double therand = rand.Uniform (0, 1);
-       if (therand > 0.5) {
-         groupOne.push_back(firstTrk);  
-         groupTwo.push_back(secondTrk);        
-       }    
-       else {
-         groupOne.push_back(secondTrk);  
-         groupTwo.push_back(firstTrk);        
-       }                              
-       
-//        std::cout << "i: "   << tracksIt        << std::endl;
-//        std::cout << "pt: "  << firstTrk.pt()  << std::endl;
-       
-	 }
-	 
-	 if  (! (groupOne.size() >= 2 && groupTwo.size() >= 2) )   continue;
+    reco::TrackCollection allTracks;
+    reco::TrackCollection groupOne, groupTwo;
+    for (trki  = iPV.tracks_begin(); trki != iPV.tracks_end(); ++trki) 
+    {
+      if (trki->isNonnull()){
+        reco::TrackRef trk_now(tracks, (*trki).key());
+        allTracks.push_back(*trk_now);
+      }
+    }
+     
+    // order with decreasing pt 
+    std::sort (allTracks.begin(), allTracks.end(), mysorter);
+    
+    int ntrks = allTracks.size();
+    h_ntrks -> Fill( ntrks );
+    
+    // discard lowest pt track
+    uint even_ntrks;
+    ntrks % 2 == 0 ? even_ntrks = ntrks : even_ntrks = ntrks - 1;
+    
+    // split into two sets equally populated 
+    for (uint tracksIt =0 ;  tracksIt < even_ntrks; tracksIt = tracksIt+2)
+    {
+      reco::Track  firstTrk  = allTracks.at(tracksIt);      
+      reco::Track  secondTrk = allTracks.at(tracksIt + 1);      
+      double therand = rand.Uniform (0, 1);
+      if (therand > 0.5) {
+        groupOne.push_back(firstTrk);  
+        groupTwo.push_back(secondTrk);        
+      }    
+      else {
+        groupOne.push_back(secondTrk);  
+        groupTwo.push_back(firstTrk);        
+      }                              
+      
+    }
+     
+    if  (! (groupOne.size() >= 2 && groupTwo.size() >= 2) )   continue;
 
-     // refit the two sets of tracks
-	 std::vector<reco::TransientTrack> groupOne_ttks;
-	 groupOne_ttks.clear();
-	 for (reco::TrackCollection::const_iterator itrk = groupOne.begin(); itrk != groupOne.end(); itrk++)
-	 {
-	   reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
-	   groupOne_ttks.push_back(tmpTransientTrack);
-	 }
+    // refit the two sets of tracks
+    std::vector<reco::TransientTrack> groupOne_ttks;
+    groupOne_ttks.clear();
+    for (reco::TrackCollection::const_iterator itrk = groupOne.begin(); itrk != groupOne.end(); itrk++)
+    {
+      reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
+      groupOne_ttks.push_back(tmpTransientTrack);
+    }
 
-	 AdaptiveVertexFitter pvFitter;
-	 TransientVertex pvOne = pvFitter.vertex(groupOne_ttks);
-	 if (!pvOne.isValid())                                          continue;
-     reco::Vertex onePV = pvOne;    
+    AdaptiveVertexFitter pvFitter;
+    TransientVertex pvOne = pvFitter.vertex(groupOne_ttks);
+    if (!pvOne.isValid())                                          continue;
+    reco::Vertex onePV = pvOne;    
 
 
-	 std::vector<reco::TransientTrack> groupTwo_ttks;
-	 groupTwo_ttks.clear();
-	 for (reco::TrackCollection::const_iterator itrk = groupTwo.begin(); itrk != groupTwo.end(); itrk++)
-	 {
-	   reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
-	   groupTwo_ttks.push_back(tmpTransientTrack);
-	 }
-	 TransientVertex pvTwo = pvFitter.vertex(groupTwo_ttks);
-	 if (!pvTwo.isValid())                                          continue;
-     reco::Vertex twoPV = pvTwo;    
-	 
-//      std::cout << "original: " << ntrks << std::endl;
-//      std::cout << "split 1 : " << onePV.nTracks() << std::endl;
-//      std::cout << "split 2 : " << twoPV.nTracks() << std::endl;
-     int half_trks = twoPV.nTracks();
-	 
-	 h_diffX -> Fill(twoPV.x() - onePV.x());
-	 h_diffY -> Fill(twoPV.y() - onePV.y());
-	 h_diffZ -> Fill(twoPV.z() - onePV.z());
-	 
-	 double errX = sqrt( pow(twoPV.xError(),2) + pow(onePV.xError(),2) );
-	 double errY = sqrt( pow(twoPV.yError(),2) + pow(onePV.yError(),2) );
-	 double errZ = sqrt( pow(twoPV.zError(),2) + pow(onePV.zError(),2) );
+    std::vector<reco::TransientTrack> groupTwo_ttks;
+    groupTwo_ttks.clear();
+    for (reco::TrackCollection::const_iterator itrk = groupTwo.begin(); itrk != groupTwo.end(); itrk++)
+    {
+      reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
+      groupTwo_ttks.push_back(tmpTransientTrack);
+    }
+    TransientVertex pvTwo = pvFitter.vertex(groupTwo_ttks);
+    if (!pvTwo.isValid())                                          continue;
+    reco::Vertex twoPV = pvTwo;    
+     
+    int half_trks = twoPV.nTracks();
+    
+    h_diffX -> Fill(twoPV.x() - onePV.x());
+    h_diffY -> Fill(twoPV.y() - onePV.y());
+    h_diffZ -> Fill(twoPV.z() - onePV.z());
+    
+    double errX = sqrt( pow(twoPV.xError(),2) + pow(onePV.xError(),2) );
+    double errY = sqrt( pow(twoPV.yError(),2) + pow(onePV.yError(),2) );
+    double errZ = sqrt( pow(twoPV.zError(),2) + pow(onePV.zError(),2) );
 
-	 h_pullX -> Fill( (twoPV.x() - onePV.x()) / errX );
-	 h_pullY -> Fill( (twoPV.y() - onePV.y()) / errY );
-	 h_pullZ -> Fill( (twoPV.z() - onePV.z()) / errZ );
-	 
+    h_pullX -> Fill( (twoPV.x() - onePV.x()) / errX );
+    h_pullY -> Fill( (twoPV.y() - onePV.y()) / errY );
+    h_pullZ -> Fill( (twoPV.z() - onePV.z()) / errZ );
+     
 //      if (half_trks < 55 && half_trks > 2) {
 // //        std::cout << "going to fill: " << Form("pullX_%dTrks", half_trks) << std::endl;
 //        hpulls_[Form("pullX_%dTrks", half_trks)] ->  Fill( (twoPV.x() - onePV.x()) / errX );
@@ -257,34 +240,32 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 //        hdiffs_[Form("diffZ_%dTrks", half_trks)] ->  Fill( (twoPV.z() - onePV.z())        );
 //      }
 
-     pvCand thePV;
-     thePV.nTrks = ntrks; 
+    pvCand thePV;
+    thePV.nTrks = ntrks; 
 
-     thePV.n_subVtx1 = half_trks;
-     thePV.x_subVtx1 = onePV.x();
-     thePV.y_subVtx1 = onePV.y();
-     thePV.z_subVtx1 = onePV.z();
+    thePV.n_subVtx1 = half_trks;
+    thePV.x_subVtx1 = onePV.x();
+    thePV.y_subVtx1 = onePV.y();
+    thePV.z_subVtx1 = onePV.z();
 
-     thePV.xErr_subVtx1 = onePV.xError();
-     thePV.yErr_subVtx1 = onePV.yError();
-     thePV.zErr_subVtx1 = onePV.zError();
+    thePV.xErr_subVtx1 = onePV.xError();
+    thePV.yErr_subVtx1 = onePV.yError();
+    thePV.zErr_subVtx1 = onePV.zError();
 
-     thePV.n_subVtx2 = half_trks; 
-     thePV.x_subVtx2 = twoPV.x();
-     thePV.y_subVtx2 = twoPV.y();
-     thePV.z_subVtx2 = twoPV.z();
+    thePV.n_subVtx2 = half_trks; 
+    thePV.x_subVtx2 = twoPV.x();
+    thePV.y_subVtx2 = twoPV.y();
+    thePV.z_subVtx2 = twoPV.z();
 
-     thePV.xErr_subVtx2 = twoPV.xError();
-     thePV.yErr_subVtx2 = twoPV.yError();
-     thePV.zErr_subVtx2 = twoPV.zError();
-     
-     event_.pvs.push_back(thePV);
-	 
-   }
-
+    thePV.xErr_subVtx2 = twoPV.xError();
+    thePV.yErr_subVtx2 = twoPV.yError();
+    thePV.zErr_subVtx2 = twoPV.zError();
+    
+    event_.pvs.push_back(thePV);
+    
+  }
   
   tree_ -> Fill();
-
 
 }
 
@@ -294,10 +275,6 @@ void
 errorScaleCal::beginJob()
 {
 
-//   const bool oldAddDir = TH1::AddDirectoryStatus();
-//   TH1::AddDirectory(true);
-  
-//   outfile_ -> cd();
   h_diffX = outfile_->make<TH1F>( "h_diffX"  , "h_diffX", 100,  -2, 2. );
   h_diffY = outfile_->make<TH1F>( "h_diffY"  , "h_diffY", 100,  -2, 2. );
   h_diffZ = outfile_->make<TH1F>( "h_diffZ"  , "h_diffZ", 100,  -2, 2. );
@@ -319,8 +296,6 @@ errorScaleCal::beginJob()
   
   tree_ = outfile_-> make<TTree>("pvTree","pvTree");
   tree_ -> Branch("event" ,&event_, 64000,2);
-
-//   TH1::AddDirectory(oldAddDir);
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
