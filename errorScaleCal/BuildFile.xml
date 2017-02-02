@@ -1,0 +1,37 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/PluginManager"/>
+<use name="FWCore/ParameterSet"/>
+<use name="CommonTools/Utils"/>
+<use name="DataFormats/VertexReco"/>
+<use name="PhysicsTools/UtilAlgos"/>
+<use name="RecoVertex/AdaptiveVertexFit"/>
+<use name="TrackingTools/TransientTrack"/>
+
+<!-- <use name="rootcintex"/> -->
+<use name="root"/>
+<use name="rootminuit"/>
+<use name="clhep"/>
+<use name="rootrflx"/>
+<use name="rootmath"/>
+<!-- 
+<library name="BeamSpotCalibrationPlugin" file="*.cc">
+   <use name="BeamSpotCalibration/Analyzers"/>
+   <use name="root"/>
+   <use name="rootminuit"/>
+   <use name="clhep"/>
+   <use name="rootrflx"/>
+   <use name="rootmath"/>
+   <Flags EDM_PLUGIN="1"/>
+</library>
+ -->
+<!-- 
+<use   name="TrackingTools/PatternTools"/>
+<use   name="DataFormats/TrajectorySeed"/>
+<use   name="RecoVertex/KalmanVertexFit"/>
+<use   name="RecoVertex/VertexPrimitives"/>
+<use   name="RecoVertex/PrimaryVertexProducer"/>
+ -->
+<use   name="TrackingTools/Records"/>
+<export>
+  <lib   name="1"/>
+</export>
