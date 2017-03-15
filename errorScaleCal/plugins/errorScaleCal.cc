@@ -5,10 +5,6 @@
 // 
 /**\class errorScaleCal errorScaleCal.cc BeamSpotCalibration/errorScaleCal/plugins/errorScaleCal.cc
 
- Description: [one line class summary]
-
- Implementation:
-     [Notes on implementation]
 */
 //
 // Original Author:  Sara Fiorendi
@@ -76,6 +72,10 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
 
       edm::InputTag      tracksTag_                        ;
       edm::EDGetTokenT<reco::TrackCollection>  tracksToken_;
+      
+      double minVtxNdf_      ;
+      double minVtxWgt_      ;
+
 
       edm::Service<TFileService> outfile_;
 
@@ -87,8 +87,8 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       TH1F * h_pullZ ;
 
       TH1F * h_ntrks ;
-      std::map<std::string, TH1F*> hpulls_      ;
-      std::map<std::string, TH1F*> hdiffs_      ;
+      TH1F * h_wTrks1 ;
+      TH1F * h_wTrks2 ;
       TRandom rand;
 
       pvEvent event_;
@@ -97,14 +97,13 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       // ----------member data ---------------------------
 };
 
-//
-// constructors and destructor
-//
 errorScaleCal::errorScaleCal(const edm::ParameterSet& iConfig):
   pvsTag_           (iConfig.getParameter<edm::InputTag>("vtxCollection")), 
   pvsToken_         (consumes<reco::VertexCollection>(pvsTag_)), 
   tracksTag_        (iConfig.getParameter<edm::InputTag>("trackCollection")), 
-  tracksToken_      (consumes<reco::TrackCollection>(tracksTag_))
+  tracksToken_      (consumes<reco::TrackCollection>(tracksTag_)),
+  minVtxNdf_        (iConfig.getUntrackedParameter<double>("minVertexNdf")), 
+  minVtxWgt_        (iConfig.getUntrackedParameter<double>("minVertexMeanWeight"))
 {
 }
 
@@ -113,10 +112,6 @@ errorScaleCal::~errorScaleCal()
 {
 }
 
-
-//
-// member functions
-//
 
 // ------------ method called for each event  ------------
 void
@@ -143,13 +138,18 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<reco::TrackCollection> tracks; 
   iEvent.getByToken(tracksToken_, tracks);
   
-//    event_.nVtx = pvtx.size();
+  event_.nVtx = pvtx.size();
 
+  int counter = -1;
   for (reco::VertexCollection::const_iterator pvIt = pvtx.begin(); pvIt!=pvtx.end(); pvIt++)        
   {
     reco::Vertex iPV = *pvIt;
+    counter++;
     if (iPV.isFake()) continue;
     reco::Vertex::trackRef_iterator trki;
+
+    // vertex selection as in bs code
+     if ( iPV.ndof() < minVtxNdf_ || (iPV.ndof()+3.)/iPV.tracksSize()< 2*minVtxWgt_ )  continue;
 
     reco::TrackCollection allTracks;
     reco::TrackCollection groupOne, groupTwo;
@@ -190,6 +190,8 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
      
     if  (! (groupOne.size() >= 2 && groupTwo.size() >= 2) )   continue;
 
+    float sumPt1 = 0, sumPt2=0;
+
     // refit the two sets of tracks
     std::vector<reco::TransientTrack> groupOne_ttks;
     groupOne_ttks.clear();
@@ -197,11 +199,13 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
       reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
       groupOne_ttks.push_back(tmpTransientTrack);
+      sumPt1 += itrk->pt(); 
     }
 
     AdaptiveVertexFitter pvFitter;
     TransientVertex pvOne = pvFitter.vertex(groupOne_ttks);
     if (!pvOne.isValid())                                          continue;
+
     reco::Vertex onePV = pvOne;    
 
 
@@ -211,11 +215,28 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
       reco::TransientTrack tmpTransientTrack = (*theB).build(*itrk); 
       groupTwo_ttks.push_back(tmpTransientTrack);
+      sumPt2 += itrk->pt(); 
     }
     TransientVertex pvTwo = pvFitter.vertex(groupTwo_ttks);
     if (!pvTwo.isValid())                                          continue;
+
     reco::Vertex twoPV = pvTwo;    
-     
+
+
+    float theminW1 = 1.;
+    float theminW2 = 1.;
+    for (std::vector<reco::TransientTrack>::const_iterator otrk  = pvOne.originalTracks().begin(); otrk != pvOne.originalTracks().end(); ++otrk) 
+    {
+      h_wTrks1 -> Fill( pvOne.trackWeight(*otrk));
+      if (pvOne.trackWeight(*otrk) < theminW1) theminW1 = pvOne.trackWeight(*otrk); 
+    } 
+    for (std::vector<reco::TransientTrack>::const_iterator otrk  = pvTwo.originalTracks().begin(); otrk != pvTwo.originalTracks().end(); ++otrk) 
+    {
+      h_wTrks2 -> Fill( pvTwo.trackWeight(*otrk));
+      if (pvTwo.trackWeight(*otrk) < theminW2) theminW2 = pvTwo.trackWeight(*otrk); 
+    } 
+
+
     int half_trks = twoPV.nTracks();
     
     h_diffX -> Fill(twoPV.x() - onePV.x());
@@ -230,17 +251,10 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     h_pullY -> Fill( (twoPV.y() - onePV.y()) / errY );
     h_pullZ -> Fill( (twoPV.z() - onePV.z()) / errZ );
      
-//      if (half_trks < 55 && half_trks > 2) {
-// //        std::cout << "going to fill: " << Form("pullX_%dTrks", half_trks) << std::endl;
-//        hpulls_[Form("pullX_%dTrks", half_trks)] ->  Fill( (twoPV.x() - onePV.x()) / errX );
-//        hpulls_[Form("pullY_%dTrks", half_trks)] ->  Fill( (twoPV.y() - onePV.y()) / errY );
-//        hpulls_[Form("pullZ_%dTrks", half_trks)] ->  Fill( (twoPV.z() - onePV.z()) / errZ );
-//        hdiffs_[Form("diffX_%dTrks", half_trks)] ->  Fill( (twoPV.x() - onePV.x())        );
-//        hdiffs_[Form("diffY_%dTrks", half_trks)] ->  Fill( (twoPV.y() - onePV.y())        );
-//        hdiffs_[Form("diffZ_%dTrks", half_trks)] ->  Fill( (twoPV.z() - onePV.z())        );
-//      }
-
+    
+    // fill ntuples
     pvCand thePV;
+    thePV.ipos  = counter;
     thePV.nTrks = ntrks; 
 
     thePV.n_subVtx1 = half_trks;
@@ -248,21 +262,30 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     thePV.y_subVtx1 = onePV.y();
     thePV.z_subVtx1 = onePV.z();
 
-    thePV.xErr_subVtx1 = onePV.xError();
-    thePV.yErr_subVtx1 = onePV.yError();
-    thePV.zErr_subVtx1 = onePV.zError();
+    thePV.xErr_subVtx1  = onePV.xError();
+    thePV.yErr_subVtx1  = onePV.yError();
+    thePV.zErr_subVtx1  = onePV.zError();
+    thePV.sumPt_subVtx1 = sumPt1;
 
     thePV.n_subVtx2 = half_trks; 
     thePV.x_subVtx2 = twoPV.x();
     thePV.y_subVtx2 = twoPV.y();
     thePV.z_subVtx2 = twoPV.z();
 
-    thePV.xErr_subVtx2 = twoPV.xError();
-    thePV.yErr_subVtx2 = twoPV.yError();
-    thePV.zErr_subVtx2 = twoPV.zError();
+    thePV.xErr_subVtx2  = twoPV.xError();
+    thePV.yErr_subVtx2  = twoPV.yError();
+    thePV.zErr_subVtx2  = twoPV.zError();
+    thePV.sumPt_subVtx2 = sumPt2;
+    
+    thePV.CL_subVtx1 =  TMath::Prob(pvOne.totalChiSquared(),(int)(pvOne.degreesOfFreedom() ));
+    thePV.CL_subVtx2 =  TMath::Prob(pvTwo.totalChiSquared(),(int)(pvTwo.degreesOfFreedom() ));
+    
+    thePV.minW_subVtx1 = theminW1;
+    thePV.minW_subVtx2 = theminW2;
+
     
     event_.pvs.push_back(thePV);
-    
+   
   }
   
   tree_ -> Fill();
@@ -283,16 +306,11 @@ errorScaleCal::beginJob()
   h_pullY = outfile_->make<TH1F>( "h_pullY"  , "h_pullY", 500,  -10, 10. );
   h_pullZ = outfile_->make<TH1F>( "h_pullZ"  , "h_pullZ", 500,  -10, 10. );
 
-//   for (int i = 2; i < 55; i ++){
-//     hpulls_[Form("pullX_%dTrks",i)] = outfile_->make<TH1F>( Form("pullX_%dTrks",i) , Form("pullX_%dTrks",i), 500,  -10, 10. );
-//     hpulls_[Form("pullY_%dTrks",i)] = outfile_->make<TH1F>( Form("pullY_%dTrks",i) , Form("pullY_%dTrks",i), 500,  -10, 10. );
-//     hpulls_[Form("pullZ_%dTrks",i)] = outfile_->make<TH1F>( Form("pullZ_%dTrks",i) , Form("pullZ_%dTrks",i), 500,  -10, 10. );
-//     hdiffs_[Form("diffX_%dTrks",i)] = outfile_->make<TH1F>( Form("diffX_%dTrks",i) , Form("diffX_%dTrks",i), 100,   -2,  2. );
-//     hdiffs_[Form("diffY_%dTrks",i)] = outfile_->make<TH1F>( Form("diffY_%dTrks",i) , Form("diffY_%dTrks",i), 100,   -2,  2. );
-//     hdiffs_[Form("diffZ_%dTrks",i)] = outfile_->make<TH1F>( Form("diffZ_%dTrks",i) , Form("diffZ_%dTrks",i), 100,   -2,  2. );
-//   }
-  
   h_ntrks = outfile_->make<TH1F>( "h_ntrks"  , "h_ntrks", 100,  0, 100 );
+  h_wTrks1 = outfile_->make<TH1F>( "h_wTrks1"  , "h_wTrks1", 1000, -1,  1 );
+  h_wTrks2 = outfile_->make<TH1F>( "h_wTrks2"  , "h_wTrks2", 1000, -1,  1 );
+  
+  
   
   tree_ = outfile_-> make<TTree>("pvTree","pvTree");
   tree_ -> Branch("event" ,&event_, 64000,2);

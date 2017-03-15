@@ -12,6 +12,7 @@ class pvCand {
 public:
 
   Int_t   nTrks;    
+  Int_t   ipos;    
 
   Int_t   n_subVtx1;    
   Float_t x_subVtx1;
@@ -21,6 +22,7 @@ public:
   Float_t xErr_subVtx1;
   Float_t yErr_subVtx1;
   Float_t zErr_subVtx1;
+  Float_t sumPt_subVtx1;
 
   Int_t   n_subVtx2;    
   Float_t x_subVtx2;
@@ -30,6 +32,13 @@ public:
   Float_t xErr_subVtx2;
   Float_t yErr_subVtx2;
   Float_t zErr_subVtx2;
+  Float_t sumPt_subVtx2;
+  
+  Float_t CL_subVtx1;
+  Float_t CL_subVtx2;
+
+  Float_t minW_subVtx1;
+  Float_t minW_subVtx2;
   
   pvCand(){};
   virtual ~pvCand(){};
