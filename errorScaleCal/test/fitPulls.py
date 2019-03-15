@@ -69,9 +69,9 @@ variables = [
  ('diffX'          , 'resolution X [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 12E-3),         'resolutionX_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
  ('diffY'          , 'resolution Y [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 12E-3),         'resolutionY_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
  ('diffZ'          , 'resolution Z [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 25E-3),         'resolutionZ_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
- ('pullX'          , 'pull X [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (-2. , 4.   ),         'pullX_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
- ('pullY'          , 'pull Y [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (-2. , 4.   ),         'pullY_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
- ('pullZ'          , 'pull Z [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (-2. , 4.   ),         'pullZ_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
+ ('pullX'          , 'pull X [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullX_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
+ ('pullY'          , 'pull Y [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullY_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
+ ('pullZ'          , 'pull Z [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullZ_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
 ]   
 
        #          # min number of  #max number of   # x title for final graph
@@ -146,5 +146,5 @@ for ix, var in product(wrt,variables):
 
   gPad.SetGridx(True)
   gPad.SetGridy(True)
-  nc.SaveAs( 'pull_resolution_plots/' + var[6] + 'vs' + ix[0] + '_Run278820_RelVal.pdf')
+  nc.SaveAs( 'pull_resolution_plots/' + var[6] + 'vs' + ix[0] + '_2018A_selected.pdf')
 

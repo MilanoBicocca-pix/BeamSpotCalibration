@@ -18,17 +18,23 @@ int max_n_vertices = 40;//40
 int max_sum_pt     = 20;
 int max_res        = 10;
 
+int cut_n_tracks   = 30;
+float cut_sum_pt   = 50;
+float cut_max_sum_pt   = 999999;
+
 void readNtuples(){
   
   TChain* tree = new TChain("errorScaleCal/pvTree"); 
-  tree -> Add("ntuples_278820_JetHT_newAlignment_VtxSelection.root/errorScaleCal/pvTree");
-  tree -> Add("ntuples_278820_JetHT_newAlignment_VtxSelection_part2.root/errorScaleCal/pvTree");
+//   tree -> Add("/eos/cms/store/group/phys_tracking/beamspot/13TeV/2018/StreamExpressAlignment/crab_errorScale_SeptReReco_2018A/180905_143455/0000/ntuple_errorScaleCalibration_*.root");
+//   tree -> Add("/eos/cms/store/group/phys_tracking/beamspot/13TeV/2018/StreamExpressAlignment/crab_errorScale_SeptReReco_2018B/180905_143540/0000/ntuple_errorScaleCalibration_*.root");
+  tree -> Add("/eos/cms/store/group/phys_tracking/beamspot/13TeV/2018/StreamExpressAlignment/crab_errorScale_SeptReReco_2018C/180905_143644/0000/ntuple_errorScaleCalibration_*.root");
+//   tree -> Add("ntuples_278820_JetHT_newAlignment_VtxSelection_part2.root/errorScaleCal/pvTree");
 //   tree -> Add("ntuples_278820_ZeroBias_newAlignment_VtxSelection.root/errorScaleCal/pvTree");
 //   tree -> Add("ntuples_278820_ZeroBias_newAlignment_VtxSelection_part2.root/errorScaleCal/pvTree");
 //   tree -> Add("ntuples_RelValTTBar_PU25.root/errorScaleCal/pvTree");
 
 //   TFile* outfile = TFile::Open("pulls_RelValTTBar.root","RECREATE");
-  TFile* outfile = TFile::Open("pulls_278820_JetHT_newAlignment_VtxSelection.root","RECREATE");
+  TFile* outfile = TFile::Open("pulls_Run2018C_JetHT_selected.root","RECREATE");
   std::cout << "output file: " << outfile -> GetName() << std::endl;
   
   std::map<std::string, TH1F*> hpulls_      ;
@@ -80,7 +86,12 @@ void readNtuples(){
       
       // select the pv        
       pvCand thePV = ev -> pvs.at(ipv);
-//       if (thePV.ipos != 0) continue;
+
+      if (thePV.ipos != 0) continue;
+      if (thePV.n_subVtx1     < cut_n_tracks || thePV.n_subVtx2     < cut_n_tracks) continue;
+      if (thePV.sumPt_subVtx1 < cut_sum_pt   || thePV.sumPt_subVtx2 < cut_sum_pt  ) continue;
+      if (thePV.sumPt_subVtx1 > cut_max_sum_pt   || thePV.sumPt_subVtx2 > cut_max_sum_pt  ) continue;
+
 	  float dX   = thePV.x_subVtx1 - thePV.x_subVtx2;
 	  float dY   = thePV.y_subVtx1 - thePV.y_subVtx2;
 	  float dZ   = thePV.z_subVtx1 - thePV.z_subVtx2;

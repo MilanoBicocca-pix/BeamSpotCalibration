@@ -27,7 +27,21 @@ process.source = cms.Source("PoolSource",
 )
 
 process.load("RecoVertex.BeamSpotProducer.BeamSpot_cfi")
-process.GlobalTag.globaltag = '80X_dataRun2_2016LegacyRepro_Candidate_v1'
+process.GlobalTag.globaltag = '102X_dataRun2_MuAl_SeptRereco_v1'
+
+# process.GlobalTag.toGet.append(
+# cms.PSet(
+#   connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#   record = cms.string("TrackerAlignmentRcd"),
+#   tag = cms.string("TrackerAlignment_v24_offline")),
+# )
+# process.GlobalTag.toGet.append(
+# cms.PSet(
+#   connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
+#   record = cms.string("TrackerAlignmentErrorExtendedRcd"),
+#   tag = cms.string("TrackerAlignmentExtendedErrors_v10_offline_IOVs")),
+# )
+
 
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
 # remove the following lines if you run on RECO files
