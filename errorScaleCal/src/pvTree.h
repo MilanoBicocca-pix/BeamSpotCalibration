@@ -8,7 +8,7 @@
 
 
 
-class pvCand {
+class PVcand {
 public:
 
   Int_t   nTrks;    
@@ -40,14 +40,14 @@ public:
   Float_t minW_subVtx1;
   Float_t minW_subVtx2;
   
-  pvCand(){};
-  virtual ~pvCand(){};
+  PVcand(){};
+  virtual ~PVcand(){};
 
-  ClassDef(pvCand,1)
+  ClassDef(PVcand,1)
 };
 
 
-class pvEvent {
+class PVevent {
 public:
 
   Int_t   runNumber;             
@@ -56,12 +56,12 @@ public:
 
   Int_t   nVtx;                    
 
-  std::vector <pvCand>        pvs;         
+  std::vector <PVcand>        pvs;         
 
-  pvEvent(){};
-  virtual ~pvEvent(){};
+  PVevent(){};
+  virtual ~PVevent(){};
 
-  ClassDef(pvEvent,1)
+  ClassDef(PVevent,1)
 };
 
 

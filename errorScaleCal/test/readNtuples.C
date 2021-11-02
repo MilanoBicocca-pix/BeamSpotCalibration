@@ -70,7 +70,7 @@ void readNtuples(){
   }
 
   
-  pvEvent* ev      = new pvEvent();
+  PVevent* ev      = new PVevent();
   tree -> SetBranchAddress( "event", &ev);
 
   int nentries = tree->GetEntries();
@@ -85,7 +85,7 @@ void readNtuples(){
     for (int ipv = 0; ipv < npv; ipv++){
       
       // select the pv        
-      pvCand thePV = ev -> pvs.at(ipv);
+      PVcand thePV = ev -> pvs.at(ipv);
 
       if (thePV.ipos != 0) continue;
       if (thePV.n_subVtx1     < cut_n_tracks || thePV.n_subVtx2     < cut_n_tracks) continue;
