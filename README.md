@@ -2,8 +2,8 @@
 
 **How to use the package**
 ```
-cmsrel CMSSW_10_2_0  
-cd CMSSW_10_2_0/src  
+cmsrel CMSSW_12_0_3  
+cd CMSSW_12_0_3/src  
 cmsenv  
 git clone git@github.com:MilanoBicocca-pix/BeamSpotCalibration.git BeamSpotCalibration 
 cd BeamSpotCalibration/errorScaleCal
@@ -17,7 +17,7 @@ To produce the ntuples, just run
 cmsRun errorScaleCal_cfg.py
 ```
 
-Modify the cfg file errorScaleCal_cfg.py in order to aviud the track/vertex refitting if it's not needed.  
+Modify the cfg file errorScaleCal_cfg.py in order to aviud the track/vertex refitting if it's not needed.
 
 To analyze the ntuples and produce the resolution and pull plots:
 ```
