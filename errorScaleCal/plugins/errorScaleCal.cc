@@ -91,7 +91,7 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       TH1F * h_wTrks2 ;
       TRandom rand;
 
-      pvEvent event_;
+      PVevent event_;
       TTree* tree_;
 
       // ----------member data ---------------------------
@@ -146,11 +146,11 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     reco::Vertex iPV = *pvIt;
     counter++;
     if (iPV.isFake()) continue;
-    reco::Vertex::trackRef_iterator trki;
-
+    
     // vertex selection as in bs code
-     if ( iPV.ndof() < minVtxNdf_ || (iPV.ndof()+3.)/iPV.tracksSize()< 2*minVtxWgt_ )  continue;
+    if ( iPV.ndof() < minVtxNdf_ || (iPV.ndof()+3.)/iPV.tracksSize()< 2*minVtxWgt_ )  continue;
 
+    reco::Vertex::trackRef_iterator trki;
     reco::TrackCollection allTracks;
     reco::TrackCollection groupOne, groupTwo;
     for (trki  = iPV.tracks_begin(); trki != iPV.tracks_end(); ++trki) 
@@ -201,7 +201,7 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       groupOne_ttks.push_back(tmpTransientTrack);
       sumPt1 += itrk->pt(); 
     }
-
+    
     AdaptiveVertexFitter pvFitter;
     TransientVertex pvOne = pvFitter.vertex(groupOne_ttks);
     if (!pvOne.isValid())                                          continue;
@@ -217,6 +217,7 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       groupTwo_ttks.push_back(tmpTransientTrack);
       sumPt2 += itrk->pt(); 
     }
+
     TransientVertex pvTwo = pvFitter.vertex(groupTwo_ttks);
     if (!pvTwo.isValid())                                          continue;
 
@@ -253,7 +254,7 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
      
     
     // fill ntuples
-    pvCand thePV;
+    PVcand thePV;
     thePV.ipos  = counter;
     thePV.nTrks = ntrks; 
 

@@ -1,0 +1,5 @@
+<lcgdict>
+ <class name="PVcand"/>
+ <class name="std::vector<PVcand>"/>
+ <class name="PVevent"/>
+</lcgdict>
