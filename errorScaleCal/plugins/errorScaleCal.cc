@@ -146,11 +146,11 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     reco::Vertex iPV = *pvIt;
     counter++;
     if (iPV.isFake()) continue;
-    reco::Vertex::trackRef_iterator trki;
     
     // vertex selection as in bs code
-     if ( iPV.ndof() < minVtxNdf_ || (iPV.ndof()+3.)/iPV.tracksSize()< 2*minVtxWgt_ )  continue;
+    if ( iPV.ndof() < minVtxNdf_ || (iPV.ndof()+3.)/iPV.tracksSize()< 2*minVtxWgt_ )  continue;
 
+    reco::Vertex::trackRef_iterator trki;
     reco::TrackCollection allTracks;
     reco::TrackCollection groupOne, groupTwo;
     for (trki  = iPV.tracks_begin(); trki != iPV.tracks_end(); ++trki) 

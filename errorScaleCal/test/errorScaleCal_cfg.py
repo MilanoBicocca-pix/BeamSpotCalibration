@@ -11,8 +11,7 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
-process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff")
-# process.GlobalTag.globaltag = '80X_dataRun2_Prompt_v8'
+process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 process.load("Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff")
 process.load('Configuration.Geometry.GeometryRecoDB_cff')
@@ -20,15 +19,15 @@ process.load('Configuration.Geometry.GeometryRecoDB_cff')
 process.load('Configuration/StandardSequences/Services_cff')
 process.load('TrackingTools.TransientTrack.TransientTrackBuilder_cfi')
 
+# Cannot work on ALCARECO because tracks associated to PV are Ref to generalTracks
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
-        '/store/data/Run2016G/ZeroBias/ALCARECO/TkAlMinBias-PromptReco-v1/000/278/822/00000/0846B306-6F64-E611-A280-02163E011C84.root'
+    'file:/eos/cms/tier0/store/data/Commissioning2021/ZeroBias/AOD/PromptReco-v1/000/346/455/00000/3c04cffb-f6e4-4ad8-9ccc-dba93e029330.root'
     )
 )
 
 process.load("RecoVertex.BeamSpotProducer.BeamSpot_cfi")
-process.GlobalTag.globaltag = '102X_dataRun2_MuAl_SeptRereco_v1'
-
+process.GlobalTag.globaltag = '120X_dataRun3_Express_v2'
 # process.GlobalTag.toGet.append(
 # cms.PSet(
 #   connect = cms.string("frontier://FrontierProd/CMS_CONDITIONS"),
@@ -44,8 +43,7 @@ process.GlobalTag.globaltag = '102X_dataRun2_MuAl_SeptRereco_v1'
 
 
 process.load("RecoTracker.TrackProducer.TrackRefitters_cff")
-# remove the following lines if you run on RECO files
-process.TrackRefitter.src = 'ALCARECOTkAlMinBias'
+process.TrackRefitter.src = 'generalTracks'
 process.TrackRefitter.NavigationSchool = ''
 
 
@@ -65,19 +63,21 @@ process.offlinePrimaryVerticesFromRefittedTrks.TkFilterParameters.minPixelLayers
 
 
 process.errorScaleCal = cms.EDAnalyzer('errorScaleCal',
-			vtxCollection    	= cms.InputTag("offlinePrimaryVerticesFromRefittedTrks"),
-			trackCollection		= cms.InputTag("TrackRefitter"),		
-			minVertexNdf        = cms.untracked.double(10.),
-			minVertexMeanWeight = cms.untracked.double(0.5)
+#                                       vtxCollection       = cms.InputTag("offlinePrimaryVerticesFromRefittedTrks"),
+#                                       trackCollection     = cms.InputTag("TrackRefitter"),
+                                       vtxCollection       = cms.InputTag("offlinePrimaryVertices"),
+                                       trackCollection     = cms.InputTag("generalTracks"),
+                                       minVertexNdf        = cms.untracked.double(10.),
+                                       minVertexMeanWeight = cms.untracked.double(0.5)
 )
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("ntuple_errorScaleCalibration.root"),	
+                                   fileName = cms.string("ntuple_errorScaleCalibration_beammTestLHC_provaAOD.root"),
                                    closeFileFast = cms.untracked.bool(False)
                                    )
 
-process.p = cms.Path(process.offlineBeamSpot                        + 
-                     process.TrackRefitter                          + 
-                     process.offlinePrimaryVerticesFromRefittedTrks +
-                     process.errorScaleCal)
+#process.p = cms.Path(process.offlineBeamSpot                        +
+#                     process.TrackRefitter                          +
+#                     process.offlinePrimaryVerticesFromRefittedTrks +
+#                     process.errorScaleCal)
 
-# process.p = cms.Path(process.errorScaleCal)
+process.p = cms.Path(process.errorScaleCal)
