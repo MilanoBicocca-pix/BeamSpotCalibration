@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy
 from argparse import ArgumentParser
 import os, sys
@@ -35,9 +37,9 @@ namefiles = options.input.split(',')
 nfiles   = len(namefiles)
 files    = []
 
-print 'number of input files is ' + str(nfiles)
+print ('number of input files is ' + str(nfiles))
 for i in range(0, nfiles):
-  print 'opening file ' + str(i) + ': ' + namefiles[i]
+  print ('opening file ' + str(i) + ': ' + namefiles[i])
   files.append(TFile.Open(namefiles[i]   , 'r') )
 
 
@@ -126,8 +128,8 @@ for ix, var in product(wrt,variables):
   
     g = ROOT.TGraphErrors( len(yvec), xvec, yvec, xerrvec, yerrvec)
     nc.cd()
-  
-    print colorlist[j]
+
+    print (colorlist[j])
     g.SetLineColor  (colorlist[j])
     g.SetMarkerColor(colorlist[j])
     g.SetMarkerStyle(8 )
