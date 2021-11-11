@@ -1,14 +1,21 @@
 import numpy
 from argparse import ArgumentParser
-
+import os, sys
 parser = ArgumentParser()
 parser.add_argument("-i"  , "--input"     , dest = "input"     ,  help = "input file"       , default = ''                        )
 parser.add_argument("-d"  , "--diff"      , dest = "diff"      ,  help = "plot differences" , default = False, action='store_true')
 parser.add_argument("-l"  , "--leg"       , dest = "leg"       ,  help = "legend labels"    , default = ''                        )
+parser.add_argument("-o"  , "--out"       , dest = "out"       ,  help = "output directory" , default = 'pull_resolution_plots'   )
 
 options = parser.parse_args()
 if not options.input:   
   parser.error('Input filename not given')
+
+if not os.path.exists(options.out):
+  os.makedirs(options.out)
+else:
+  print("Directory {} already exists. Will not overwrite. Exit.".format(options.out))
+  sys.exit(0)
 
 import ROOT
 import math
@@ -146,5 +153,5 @@ for ix, var in product(wrt,variables):
 
   gPad.SetGridx(True)
   gPad.SetGridy(True)
-  nc.SaveAs( 'pull_resolution_plots/' + var[6] + 'vs' + ix[0] + '_2018A_selected.pdf')
+  nc.SaveAs( options.out + '/' + var[6] + 'vs' + ix[0] + '_2018A_selected.pdf')
 
