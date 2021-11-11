@@ -117,15 +117,15 @@ for ix, var in product(wrt,variables):
       else:
         thex   .append(float(i*10+5))
        
-    yvec      = numpy.array( they           )
-    yerrvec   = numpy.array( theyerr        )
-    xvec      = numpy.array( thex           )
+    yvec      = numpy.array( they           , dtype = numpy.float)
+    yerrvec   = numpy.array( theyerr        , dtype = numpy.float)
+    xvec      = numpy.array( thex           , dtype = numpy.float)
   
     if 'sumPt' not in ix[0]:
-      xerrvec   = numpy.array( [0.5 for i in yvec]     )
+      xerrvec   = numpy.array( [0.5 for i in yvec], dtype = numpy.float)
     else:
-      xerrvec   = numpy.array( [5 for i in yvec]     )
-  
+      xerrvec   = numpy.array( [5.0 for i in yvec], dtype = numpy.float)
+
     g = ROOT.TGraphErrors( len(yvec), xvec, yvec, xerrvec, yerrvec)
     nc.cd()
 
