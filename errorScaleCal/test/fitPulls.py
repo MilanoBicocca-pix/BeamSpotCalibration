@@ -136,12 +136,12 @@ for ix, var in product(wrt,variables):
 
       yval.append(width / math.sqrt(2) if 'diff' in var.name else width)
       yerr.append(error / math.sqrt(2) if 'diff' in var.name else error)
-      xval.append(float(i))
+      xval.append(float(i) + step_pt/2. if 'sumPt' in ix.name else float(i))
 
       binh.Draw("HIST")
       fitf.Draw("SAME")
       fit_can.SaveAs("%s/fits/%s_%d%s.pdf" %(args.output, var.name, i, ix.name))
-    
+
     yvalv = numpy.array(yval, dtype = numpy.float)
     yerrv = numpy.array(yerr, dtype = numpy.float)
     xvalv = numpy.array(xval, dtype = numpy.float)
