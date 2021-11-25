@@ -1,150 +1,178 @@
-import numpy
-from argparse import ArgumentParser
-
-parser = ArgumentParser()
-parser.add_argument("-i"  , "--input"     , dest = "input"     ,  help = "input file"       , default = ''                        )
-parser.add_argument("-d"  , "--diff"      , dest = "diff"      ,  help = "plot differences" , default = False, action='store_true')
-parser.add_argument("-l"  , "--leg"       , dest = "leg"       ,  help = "legend labels"    , default = ''                        )
-
-options = parser.parse_args()
-if not options.input:   
-  parser.error('Input filename not given')
+from __future__ import print_function
 
 import ROOT
+import os
 import math
-from   ROOT  import TFile, TTree, gDirectory, TH1F, TCanvas, TLegend, gPad, gStyle, gROOT, TGaxis, TPad, TGraphErrors
-from   array import array
-from   itertools import product
+import numpy
+from itertools import product
 
-gROOT.SetBatch(True)
-gStyle.SetOptStat('emr')
-gStyle.SetOptFit(1)
-gStyle.SetTitleAlign(23)
-gStyle.SetPadLeftMargin(0.16)
-gStyle.SetPadBottomMargin(0.16)
-TGaxis.SetMaxDigits(3)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--input' , nargs='+')
+parser.add_argument('--output', default = './fit_results')
+parser.add_argument('--label' , nargs='+', default = None)
+parser.add_argument('--legend', action = 'store_true')
+args = parser.parse_args()
 
-namefiles = options.input.split(',')
-nfiles   = len(namefiles)
-files    = []
+ROOT.gROOT.SetBatch(True)
+ROOT.gStyle.SetOptStat(0)
+ROOT.gStyle.SetOptFit(1)
+ROOT.gStyle.SetTitleAlign(23)
+ROOT.gStyle.SetPadLeftMargin(0.16)
+ROOT.gStyle.SetPadBottomMargin(0.16)
+ROOT.TGaxis.SetMaxDigits(3)
 
-print 'number of input files is ' + str(nfiles)
-for i in range(0, nfiles):
-  print 'opening file ' + str(i) + ': ' + namefiles[i]
-  files.append(TFile.Open(namefiles[i]   , 'r') )
+step_pt=2
 
+if not os.path.exists('/'.join([args.output, 'fits'])):
+  os.makedirs('/'.join([args.output, 'fits']))
 
-pc        = TCanvas('pc', 'pc', 400,400)
-colorlist = [ROOT.kBlack, ROOT.kGray+1, ROOT.kRed, ROOT.kOrange-3, ROOT.kViolet, ROOT.kViolet-9]
+if args.label is None:
+  args.label = ['file_%s' %i for i in range(len(args.input))]
 
+class Var:
+  def __init__(self, name, title, rebin, yrange, legend_position):
+    self.name  = name
+    self.title = title
+    self.rebin = rebin
+    self.yrange = yrange
+    self.legend_position = legend_position
 
-def doHisto(file, var, what, i):
-
-  pEff1  = file.Get(var[0] + '_' + str(i) + what  )
-  
-  pEff1.SetLineColor  (colorlist[0])
-  pEff1.SetMarkerColor(colorlist[0])
-  pEff1.SetMarkerStyle(8)
-  pEff1.SetMarkerSize(0.8)
-  pEff1.SetTitle(";" + var[1] + ";" + var[2])
-  
-  pc.cd()
-  pEff1.Rebin(var[3])
-  pEff1.Draw()
-
-  thef = ROOT.TF1 ('thef', 'gaus', float(pEff1.GetMean() - 3*pEff1.GetRMS()), pEff1.GetMean() + 3*pEff1.GetRMS())
-  pEff1.Fit('thef', 'R')
-#   pc.SaveAs( pEff1.GetName() + '_278820.pdf')
-  width = thef.GetParameter(2)
-  err   = thef.GetParError(2)
-  return width,err
-
-
-
-
-ytitle = 'events'
+class Bin:
+  def __init__(self, name, lo, hi, title):
+    self.name  = name
+    self.title = title
+    self.lo    = lo
+    self.hi    = hi
 
 variables = [
-#  name          # x axis title            # y title   # rebin    # x range [not used]      # y range[not used]  # pdf name                     # legend position         #y range ratio          
- ('diffX'          , 'resolution X [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 12E-3),         'resolutionX_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
- ('diffY'          , 'resolution Y [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 12E-3),         'resolutionY_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
- ('diffZ'          , 'resolution Z [cm]'    , ytitle,   1         , ( -2.4 , 2.4),          (0. , 25E-3),         'resolutionZ_'      ,  (0.55 , 0.85, 0.68, 0.85),  (0.9  , 1.05  )),
- ('pullX'          , 'pull X [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullX_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
- ('pullY'          , 'pull Y [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullY_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
- ('pullZ'          , 'pull Z [cm]'          , ytitle,   2         , ( -2.4 , 2.4),          (0. , 2.   ),         'pullZ_'            ,  (0.18 , 0.45, 0.18, 0.42),  (0.9  , 1.05  )),
-]   
+  #Var('diffX', 'resolution X [cm]', (0., 12E-3), 1, (0.55 , 0.85, 0.68, 0.85)),
+  #Var('diffY', 'resolution Y [cm]', (0., 12E-3), 1, (0.55 , 0.85, 0.68, 0.85)),
+  #Var('diffZ', 'resolution Z [cm]', (0., 25E-3), 1, (0.55 , 0.85, 0.68, 0.85)),
+  Var('pullX', 'pull X [cm]', 1, (0., 2.), (0.8, 0.7, 0.85, 0.85)),
+  Var('pullY', 'pull Y [cm]', 1, (0., 2.), (0.8, 0.7, 0.85, 0.85)),
+  Var('pullZ', 'pull Z [cm]', 1, (0., 2.), (0.8, 0.7, 0.85, 0.85)),
+]
 
-       #          # min number of  #max number of   # x title for final graph
-wrt = [('Trks'  ,       2,         80,               '# tracks in the split vertex'),#   40), 
-       ('Vtx'   ,       2,         40,               '# vertices in the event'     ),#   25)
-       ('sumPt' ,       0,         20,               'sumPt [GeV]'     ),#   25)
-      ]
+wrt = [
+  Bin('Trks' , 5, 35, '# tracks in the split vertex'),
+  Bin('Vtx'  , 1, 6,  '# vertices in the event'     ),
+  Bin('sumPt', 0, 24, 'sumPt [GeV]'                 ),
+]
 
+colorlist = [ROOT.kBlack, ROOT.kGray+1, ROOT.kRed, ROOT.kOrange-3, ROOT.kViolet, ROOT.kViolet-9]
+
+## first fit the unbinned pulls and diffs
+for var in variables:
+  yval, yerr = [], []
+  for j,(ff, lab) in enumerate(zip(args.input, args.label)):
+    fit_can = ROOT.TCanvas()
+    fit_can.cd()
+    
+    tfile = ROOT.TFile.Open(ff, 'READ')
+    binh = tfile.Get('%s_unbinned' %var.name)
+
+    binh.SetTitle('%s - %s' %(var.title, lab))
+    binh.Rebin(var.rebin)
+
+    fitf = ROOT.TF1("gaussian", "gaus", float(binh.GetMean() - 3*binh.GetRMS()), binh.GetMean() + 3*binh.GetRMS())
+    fitf.SetParameters(binh.GetEntries(), binh.GetMean(), binh.GetRMS())
+    binh.Fit('gaussian', 'R')
+    width = fitf.GetParameter(2)
+    error = fitf.GetParError(2)
+
+    binh.Draw("HIST")
+    fitf.Draw("SAME")
+    fit_can.SaveAs('%s/fits/%s_unbinned_%s.pdf' %(args.output, var.name, lab))
+
+    yval.append(width / math.sqrt(2) if 'diff' in var.name else width)
+    yerr.append(error / math.sqrt(2) if 'diff' in var.name else error)
+  
+  histo = ROOT.TH1F("h%s" %var.name, var.title, len(yval), 0, len(yval))
+  histo.GetXaxis().SetTitle("file")
+  histo.GetYaxis().SetTitle(var.title)
+  histo.SetLineColor(ROOT.kBlack)
+  histo.SetMarkerColor(ROOT.kBlack)
+  histo.SetMarkerStyle(20)
+  
+  for i,(yv,ye) in enumerate(zip(yval, yerr)):
+    histo.SetBinContent(i+1, yv)
+    histo.SetBinError(i+1, ye)
+    histo.GetXaxis().SetBinLabel(i+1, args.label[i])
+  
+  can = ROOT.TCanvas()
+  can.cd()
+  can.SetGridy()
+  histo.Draw("PEX0")
+  can.SaveAs("%s/%s_unbinned.pdf" %(args.output, var.name))
+
+## now fit the binned histograms
 for ix, var in product(wrt,variables):
-  nc      = TCanvas('nc', 'nc', 400, 400)
   graphs  = []
-
-  l = TLegend(var[7][0], var[7][2], var[7][1], var[7][3])
+  l = ROOT.TLegend(*var.legend_position)
   l.SetBorderSize(0)
   l.SetTextSize(0.028)
 
-  for j,jfile in enumerate(files):
-    they    = []
-    theyerr = []
-    thex    = []
-    for i in range( ix[1], ix[2]):
-
-      width, err = doHisto(files[j] , var, ix[0], i)
-
-      if 'diff' in var[0]:
-        they   .append(width/math.sqrt(2))
-        theyerr.append(err/math.sqrt(2))
-      else:  
-        they   .append(width)
-        theyerr.append(err)
+  for j,(ff, lab) in enumerate(zip(args.input, args.label)):
+    yval, yerr, xval = [], [], []
     
-      if 'sumPt' not in ix[0]:
-        thex   .append(float(i))
-      else:
-        thex   .append(float(i*10+5))
-       
-    yvec      = numpy.array( they           )
-    yerrvec   = numpy.array( theyerr        )
-    xvec      = numpy.array( thex           )
-  
-    if 'sumPt' not in ix[0]:
-      xerrvec   = numpy.array( [0.5 for i in yvec]     )
-    else:
-      xerrvec   = numpy.array( [5 for i in yvec]     )
-  
-    g = ROOT.TGraphErrors( len(yvec), xvec, yvec, xerrvec, yerrvec)
-    nc.cd()
-  
-    print colorlist[j]
+    for i in range( ix.lo, ix.hi):
+      tfile = ROOT.TFile.Open(ff, 'READ')
+
+      fit_can = ROOT.TCanvas()
+      fit_can.cd()
+
+      if 'sumPt' in ix.name and i%step_pt != 0 : continue
+
+      binh = tfile.Get('%s_%d%s' %(var.name, i, ix.name))
+
+      binh.SetTitle('%s %s_%d - %s' %(var.title, ix.name, i, lab))
+      binh.Rebin(var.rebin)
+
+      fitf = ROOT.TF1("gaussian", "gaus", float(binh.GetMean() - 3*binh.GetRMS()), binh.GetMean() + 3*binh.GetRMS())
+      binh.Fit('gaussian', 'R')
+      width = fitf.GetParameter(2)
+      error = fitf.GetParError(2)
+
+      yval.append(width / math.sqrt(2) if 'diff' in var.name else width)
+      yerr.append(error / math.sqrt(2) if 'diff' in var.name else error)
+      xval.append(float(i))
+
+      binh.Draw("HIST")
+      fitf.Draw("SAME")
+      fit_can.SaveAs("%s/fits/%s_%d%s.pdf" %(args.output, var.name, i, ix.name))
+    
+    yvalv = numpy.array(yval, dtype = numpy.float)
+    yerrv = numpy.array(yerr, dtype = numpy.float)
+    xvalv = numpy.array(xval, dtype = numpy.float)
+    xerrv = numpy.array([step_pt/2. for i in yvalv], dtype = numpy.float) if 'sumPt' in ix.name else numpy.array([0.5 for i in yvalv], dtype = numpy.float)
+
+    g = ROOT.TGraphErrors( len(yvalv), xvalv, yvalv, xerrv, yerrv)
     g.SetLineColor  (colorlist[j])
     g.SetMarkerColor(colorlist[j])
-    g.SetMarkerStyle(8 )
+    g.SetMarkerStyle(8)
     g.SetMarkerSize(0.8)
     g.SetTitle('')
-    g.GetXaxis().SetTitle(ix[3])
-    g.GetYaxis().SetTitle(var[1])
-    g.GetYaxis().SetRangeUser(var[5][0], var[5][1])
+    g.GetXaxis().SetTitle(ix.title)
+    g.GetYaxis().SetTitle(var.title)
+    g.GetYaxis().SetRangeUser(*var.yrange)
     graphs.append(g)
 
-  nc.cd()
+  can = ROOT.TCanvas()
+  can.cd()
   for j,jgraph in enumerate(graphs):
     jgraph.Draw('AP'*(j==0) + 'P same'*(j!=0))
-  
-    if options.leg:
-      l.AddEntry(jgraph , options.leg.split(',')[j]  , "pel")
 
-    nc.Update()
-    nc.Modified()
+    l.AddEntry(jgraph, args.label[j], "pel")
+      
+    can.Update()
+    can.Modified()
+    
+  if args.legend: l.Draw()
+    
+  can.SetGridx(True)
+  can.SetGridy(True)
 
-  if options.leg:
-    l.Draw()
+  can.SaveAs('%s/%s_vs_%s.pdf' %(args.output, var.name, ix.name))
 
-  gPad.SetGridx(True)
-  gPad.SetGridy(True)
-  nc.SaveAs( 'pull_resolution_plots/' + var[6] + 'vs' + ix[0] + '_2018A_selected.pdf')
-
+print ('all done')
