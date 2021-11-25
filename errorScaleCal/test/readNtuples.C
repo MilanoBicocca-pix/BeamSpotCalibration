@@ -147,8 +147,8 @@ void readNtuples(){
 
       for (int i=0; i < max_sum_pt; i += sum_pt_step){
       
-        if (thePV.sumPt_subVtx1 > i*sum_pt_step && thePV.sumPt_subVtx1 < i*sum_pt_step+sum_pt_step &&
-            thePV.sumPt_subVtx2 > i*sum_pt_step && thePV.sumPt_subVtx2 < i*sum_pt_step+sum_pt_step 
+        if (thePV.sumPt_subVtx1 > i && thePV.sumPt_subVtx1 < i+sum_pt_step &&
+            thePV.sumPt_subVtx2 > i && thePV.sumPt_subVtx2 < i+sum_pt_step 
            ){
         
           hpulls_[Form("pullX_%dsumPt", i)] ->  Fill( dX / errX );
