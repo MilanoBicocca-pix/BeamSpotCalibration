@@ -12,6 +12,9 @@
 
 #include "BeamSpotCalibration/errorScaleCal/src/pvTree.h"
 
+// standard cuts for 13 TeV collisions
+//int max_n_tracks   = 80;
+//int max_n_vertices = 40;
 int max_n_tracks   = 35;
 int max_n_vertices = 6;
 int max_sum_pt     = 25;
