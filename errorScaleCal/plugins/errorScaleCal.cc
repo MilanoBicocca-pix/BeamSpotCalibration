@@ -38,7 +38,6 @@
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 
-#include "Geometry/Records/interface/GlobalTrackingGeometryRecord.h"
 #include "RecoVertex/AdaptiveVertexFit/interface/AdaptiveVertexFitter.h"
 #include "RecoVertex/VertexTools/interface/VertexDistance3D.h"
 #include "TrackingTools/Records/interface/TransientTrackRecord.h"
@@ -76,7 +75,8 @@ class errorScaleCal : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
       double minVtxNdf_      ;
       double minVtxWgt_      ;
 
-
+      const edm::ESGetToken<TransientTrackBuilder, TransientTrackRecord> ttkToken_;
+      
       edm::Service<TFileService> outfile_;
 
       TH1F * h_diffX ;
@@ -103,7 +103,8 @@ errorScaleCal::errorScaleCal(const edm::ParameterSet& iConfig):
   tracksTag_        (iConfig.getParameter<edm::InputTag>("trackCollection")), 
   tracksToken_      (consumes<reco::TrackCollection>(tracksTag_)),
   minVtxNdf_        (iConfig.getUntrackedParameter<double>("minVertexNdf")), 
-  minVtxWgt_        (iConfig.getUntrackedParameter<double>("minVertexMeanWeight"))
+  minVtxWgt_        (iConfig.getUntrackedParameter<double>("minVertexMeanWeight")),
+  ttkToken_         (esConsumes(edm::ESInputTag("", "TransientTrackBuilder")))
 {
 }
 
@@ -125,11 +126,7 @@ errorScaleCal::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   event_.luminosityBlockNumber = iEvent.id().luminosityBlock();
   event_.eventNumber           = iEvent.id().event();
 
-
-  edm::ESHandle<TransientTrackBuilder>            theB                ;
-  edm::ESHandle<GlobalTrackingGeometry>           theTrackingGeometry ;
-  iSetup.get<GlobalTrackingGeometryRecord>().get(theTrackingGeometry) ;
-  iSetup.get<TransientTrackRecord>().get("TransientTrackBuilder",theB);
+  edm::ESHandle<TransientTrackBuilder> theB = iSetup.getHandle(ttkToken_);
 
   edm::Handle<reco::VertexCollection> vertices; 
   iEvent.getByToken(pvsToken_, vertices);
