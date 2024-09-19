@@ -84,6 +84,7 @@ for var in variables:
     binh.Draw("HIST")
     fitf.Draw("SAME")
     fit_can.SaveAs('%s/fits/%s_unbinned_%s.pdf' %(args.output, var.name, lab))
+    fit_can.SaveAs('%s/fits/%s_unbinned_%s.png' %(args.output, var.name, lab))
 
     yval.append(width / math.sqrt(2) if 'diff' in var.name else width)
     yerr.append(error / math.sqrt(2) if 'diff' in var.name else error)
@@ -105,6 +106,7 @@ for var in variables:
   can.SetGridy()
   histo.Draw("PEX0")
   can.SaveAs("%s/%s_unbinned.pdf" %(args.output, var.name))
+  can.SaveAs("%s/%s_unbinned.png" %(args.output, var.name))
 
 ## now fit the binned histograms
 for ix, var in product(wrt,variables):
@@ -141,11 +143,12 @@ for ix, var in product(wrt,variables):
       binh.Draw("HIST")
       fitf.Draw("SAME")
       fit_can.SaveAs("%s/fits/%s_%d%s.pdf" %(args.output, var.name, i, ix.name))
+      fit_can.SaveAs("%s/fits/%s_%d%s.png" %(args.output, var.name, i, ix.name))
 
-    yvalv = numpy.array(yval, dtype = numpy.float)
-    yerrv = numpy.array(yerr, dtype = numpy.float)
-    xvalv = numpy.array(xval, dtype = numpy.float)
-    xerrv = numpy.array([step_pt/2. for i in yvalv], dtype = numpy.float) if 'sumPt' in ix.name else numpy.array([0.5 for i in yvalv], dtype = numpy.float)
+    yvalv = numpy.array(yval, dtype = float)
+    yerrv = numpy.array(yerr, dtype = float)
+    xvalv = numpy.array(xval, dtype = float)
+    xerrv = numpy.array([step_pt/2. for i in yvalv], dtype = float) if 'sumPt' in ix.name else numpy.array([0.5 for i in yvalv], dtype = float)
 
     g = ROOT.TGraphErrors( len(yvalv), xvalv, yvalv, xerrv, yerrv)
     g.SetLineColor  (colorlist[j])
@@ -174,5 +177,6 @@ for ix, var in product(wrt,variables):
   can.SetGridy(True)
 
   can.SaveAs('%s/%s_vs_%s.pdf' %(args.output, var.name, ix.name))
+  can.SaveAs('%s/%s_vs_%s.png' %(args.output, var.name, ix.name))
 
 print ('all done')
